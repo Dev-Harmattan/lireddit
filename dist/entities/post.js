@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Post = void 0;
 const core_1 = require("@mikro-orm/core");
 const dotenv_1 = __importDefault(require("dotenv"));
+const type_graphql_1 = require("type-graphql");
 dotenv_1.default.config();
 let Post = class Post {
     constructor() {
@@ -23,22 +24,27 @@ let Post = class Post {
     }
 };
 __decorate([
+    (0, type_graphql_1.Field)(),
     (0, core_1.PrimaryKey)(),
     __metadata("design:type", Number)
 ], Post.prototype, "id", void 0);
 __decorate([
+    (0, type_graphql_1.Field)(() => String),
     (0, core_1.Property)(),
     __metadata("design:type", Date)
 ], Post.prototype, "createdAt", void 0);
 __decorate([
+    (0, type_graphql_1.Field)(() => String),
     (0, core_1.Property)({ onUpdate: () => new Date() }),
     __metadata("design:type", Date)
 ], Post.prototype, "updatedAt", void 0);
 __decorate([
+    (0, type_graphql_1.Field)(),
     (0, core_1.Property)({ type: 'text' }),
     __metadata("design:type", String)
 ], Post.prototype, "title", void 0);
 Post = __decorate([
+    (0, type_graphql_1.ObjectType)(),
     (0, core_1.Entity)()
 ], Post);
 exports.Post = Post;
