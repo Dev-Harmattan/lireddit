@@ -7,7 +7,10 @@
     "watch": "tsc -w",
     "start:dev": "nodemon dist/index.js",
     "start": "node dist/index.js",
-    "start:typescript:": "ts-node src/index.ts"
+    "start:typescript:": "ts-node src/index.ts",
+    "migration:create": "npx mikro-orm migration:create",
+    "migration:up": "npx mikro-orm migration:up",
+    "migration:down": "npx mikro-orm migration:down"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +23,7 @@
     "@mikro-orm/reflection": "^5.7.3",
     "@types/node": "^18.16.3",
     "apollo-server-express": "^3.12.0",
+    "argon2": "^0.30.3",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "graphql": "^15.8.0",

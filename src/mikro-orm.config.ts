@@ -1,13 +1,14 @@
 import { MikroORM } from '@mikro-orm/core';
 import { Post } from './entities/post';
 import Path from 'path';
+import { User } from './entities/user';
 
 export default {
   migrations: {
     path: Path.join(__dirname, './migrations'),
     glob: '!(*.d).{js,ts}',
   },
-  entities: [Post],
+  entities: [Post, User],
   user: process.env.PGL_USER,
   port: 5432,
   dbName: process.env.DB_NAME,

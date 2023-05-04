@@ -7,6 +7,7 @@ import { buildSchema } from 'type-graphql';
 import { ApolloServer } from 'apollo-server-express';
 import { HelloResolver } from './resolvers/hello';
 import { PostResolver } from './resolvers/post';
+import { UserResolver } from './resolvers/user';
 
 dotenv.config();
 
@@ -14,8 +15,12 @@ const main = async () => {
   const orm = await MikroORM.init(mikroOrmConfig);
   await orm.getMigrator().up();
 
-  // const post = orm.em.create(Post, {title: 'Hello World!', createdAt: new Date(), updatedAt: new Date()});
-  // await orm.em.persistAndFlush(post)
+  // const post = orm.em.create(Post, {
+  //   title: 'Hello World!',
+  //   createdAt: new Date(),
+  //   updatedAt: new Date(),
+  // });
+  // await orm.em.persistAndFlush(post);
 
   // const post = await orm.em.find(Post, {});
   // console.log(post)
@@ -23,7 +28,7 @@ const main = async () => {
   const app = express();
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [HelloResolver, PostResolver],
+      resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
     context: () => ({
