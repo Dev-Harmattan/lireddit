@@ -30,10 +30,10 @@ const main = async () => {
       credentials: true,
     })
   );
-
+  
   app.use(
     session({
-      name: 'qid',
+      name: process.env.COOKIE_NAME,
       store: new RedisStore({
         // @ts-ignore
         client: redisClient,

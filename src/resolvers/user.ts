@@ -10,7 +10,6 @@ import {
   Resolver,
 } from 'type-graphql';
 import argon2 from 'argon2';
-
 import { MyContex } from '../type';
 
 @InputType()
@@ -145,5 +144,21 @@ export class UserResolver {
     return {
       user,
     };
+  }
+
+  @Mutation(() => Boolean)
+  logout(
+    @Ctx() {req, res} : MyContex
+  ) {
+    return new Promise(resolve => {
+      req.session.destroy((err) => {
+        if(err){
+          resolve(false);
+          return;
+        }
+        res.clearCookie('qid');
+        resolve(true);
+      })
+    })
   }
 }
