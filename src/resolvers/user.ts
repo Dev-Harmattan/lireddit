@@ -81,7 +81,7 @@ export class UserResolver {
 
     const hashPassword = await argon2.hash(options.password);
     // @ts-ignore
-    const user = await em.create(User, {
+    const user = em.create(User, {
       username: options.username,
       password: hashPassword,
     });
@@ -118,8 +118,8 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: 'username or password',
-            message: 'Username or password is incorrect',
+            field: 'username',
+            message: 'Username is incorrect',
           },
         ],
       };
@@ -133,8 +133,8 @@ export class UserResolver {
       return {
         errors: [
           {
-            field: 'username or password',
-            message: 'Username or password is incorrect',
+            field: 'password',
+            message: 'password is incorrect',
           },
         ],
       };

@@ -8,6 +8,7 @@ import { ApolloServer } from 'apollo-server-express';
 import { HelloResolver } from './resolvers/hello';
 import { PostResolver } from './resolvers/post';
 import { UserResolver } from './resolvers/user';
+import cors from 'cors';
 
 import connectRedis from 'connect-redis';
 import session from 'express-session';
@@ -22,6 +23,13 @@ const main = async () => {
 
   const redisClient = redis.createClient();
   const RedisStore = connectRedis(session);
+
+  app.use(
+    cors({
+      origin: 'http://localhost:3000',
+      credentials: true,
+    })
+  );
 
   app.use(
     session({
@@ -43,11 +51,6 @@ const main = async () => {
     })
   );
 
-  // const corsOptions = {
-  //   origin: ['https://studio.apollographql.com', 'http://localhost:4000'],
-  //   credentials: true,
-  // };
-
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       resolvers: [HelloResolver, PostResolver, UserResolver],
@@ -63,6 +66,7 @@ const main = async () => {
   await apolloServer.start();
   apolloServer.applyMiddleware({
     app,
+    cors: false,
   });
 
   app.listen(4000, () => {
