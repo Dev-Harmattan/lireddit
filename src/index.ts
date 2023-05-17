@@ -12,7 +12,7 @@ import cors from 'cors';
 
 import connectRedis from 'connect-redis';
 import session from 'express-session';
-import redis from 'redis';
+import Redis from 'ioredis';
 dotenv.config();
 
 const main = async () => {
@@ -21,7 +21,7 @@ const main = async () => {
 
   const app = express();
 
-  const redisClient = redis.createClient();
+  const redis = new Redis();
   const RedisStore = connectRedis(session);
 
   app.use(
@@ -30,13 +30,12 @@ const main = async () => {
       credentials: true,
     })
   );
-  
+
   app.use(
     session({
       name: process.env.COOKIE_NAME,
       store: new RedisStore({
-        // @ts-ignore
-        client: redisClient,
+        client: redis,
         disableTouch: true,
       }),
       cookie: {
@@ -60,6 +59,7 @@ const main = async () => {
       em: orm.em,
       req,
       res,
+      redis,
     }),
     plugins: [],
   });

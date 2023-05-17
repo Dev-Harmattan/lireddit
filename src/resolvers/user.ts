@@ -3,7 +3,6 @@ import {
   Arg,
   Ctx,
   Field,
-  InputType,
   Mutation,
   ObjectType,
   Query,
@@ -11,15 +10,13 @@ import {
 } from 'type-graphql';
 import argon2 from 'argon2';
 import { MyContex } from '../type';
-
-@InputType()
-class UsernamePasswordOption {
-  @Field()
-  username: string;
-
-  @Field()
-  password: string;
-}
+import { UsernamePasswordOption } from '../types/UsernamePasswordOption';
+import { validateUserRegister } from '../utils/validateUserRegister';
+import { sendEmail } from '../utils/sendEmail';
+import { emailTemplate } from '../utils/template';
+import { v4 as uuidv4 } from 'uuid';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: __dirname + '/.env' });
 
 @ObjectType()
 class FieldError {
@@ -52,36 +49,100 @@ export class UserResolver {
   }
 
   @Mutation(() => UserResponse)
-  async register(
-    @Arg('options') options: UsernamePasswordOption,
-    @Ctx() { em, req }: MyContex
+  async changePassword(
+    @Arg('newPassword') newPassword: string,
+    @Arg('token') token: string,
+    @Ctx() { redis, em, req }: MyContex
   ): Promise<UserResponse> {
-    if (options.username.length <= 2) {
+    if (newPassword.length <= 3) {
       return {
         errors: [
           {
-            field: 'username',
-            message: 'Length must greater than 2',
+            field: 'newPassword',
+            message: 'Length must greater than 3',
+          },
+        ],
+      };
+    }
+    const key = process.env.FORGET_PASSWORD_PREFIX + token;
+    const userId = await redis.get(key);
+
+    if (!userId) {
+      return {
+        errors: [
+          {
+            field: 'token',
+            message: 'token expired',
           },
         ],
       };
     }
 
-    if (options.password.length <= 3) {
+    const user = await em.findOne(User, { id: parseInt(userId) });
+
+    if (!user) {
       return {
         errors: [
           {
-            field: 'password',
-            message: 'Length must greater than 3',
+            field: 'token',
+            message: 'User no longer exist',
           },
         ],
       };
+    }
+
+    user.password = await argon2.hash(newPassword);
+    em.persistAndFlush(user);
+
+    await redis.del(key);
+
+    //log in user
+    req.session.userId = user.id;
+
+    return { user };
+  }
+
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg('email') email: string,
+    @Ctx() { em, redis }: MyContex
+  ) {
+    const user = await em.findOne(User, { email });
+    if (!user) return true;
+
+    const token = uuidv4();
+
+    const key = process.env.FORGET_PASSWORD_PREFIX + token;
+
+    await redis.set(key, user.id, 'EX', 1000 * 60 * 60 * 24 * 3); // 3 DAYS EXPIRED
+
+    const templateOption = {
+      subject: 'Click on the lick below to reset your password',
+      url: `http://localhost:3000/change-password/${token}`,
+    };
+
+    const template = emailTemplate(templateOption);
+    await sendEmail(email, template, templateOption.subject);
+
+    return true;
+  }
+
+  @Mutation(() => UserResponse)
+  async register(
+    @Arg('options') options: UsernamePasswordOption,
+    @Ctx() { em, req }: MyContex
+  ): Promise<UserResponse> {
+    const errors = validateUserRegister(options);
+    if (errors) {
+      // @ts-ignore
+      return { errors };
     }
 
     const hashPassword = await argon2.hash(options.password);
     // @ts-ignore
     const user = em.create(User, {
       username: options.username,
+      email: options.email,
       password: hashPassword,
     });
     try {
@@ -108,26 +169,29 @@ export class UserResolver {
 
   @Mutation(() => UserResponse)
   async login(
-    @Arg('options') options: UsernamePasswordOption,
+    @Arg('usernameOrEmail') usernameOrEmail: string,
+    @Arg('password') password: string,
     @Ctx() { em, req }: MyContex
   ): Promise<UserResponse> {
-    const user = await em.findOne(User, { username: options.username });
+    const user = await em.findOne(
+      User,
+      usernameOrEmail.includes('@')
+        ? { email: usernameOrEmail }
+        : { username: usernameOrEmail }
+    );
 
     if (!user) {
       return {
         errors: [
           {
-            field: 'username',
-            message: 'Username is incorrect',
+            field: 'usernameOrEmail',
+            message: 'Username or Email is incorrect',
           },
         ],
       };
     }
 
-    const isValidPassword = await argon2.verify(
-      user.password,
-      options.password
-    );
+    const isValidPassword = await argon2.verify(user.password, password);
     if (!isValidPassword) {
       return {
         errors: [
@@ -147,18 +211,16 @@ export class UserResolver {
   }
 
   @Mutation(() => Boolean)
-  logout(
-    @Ctx() {req, res} : MyContex
-  ) {
-    return new Promise(resolve => {
+  logout(@Ctx() { req, res }: MyContex) {
+    return new Promise((resolve) => {
       req.session.destroy((err) => {
-        if(err){
+        if (err) {
           resolve(false);
           return;
         }
         res.clearCookie('qid');
         resolve(true);
-      })
-    })
+      });
+    });
   }
 }
