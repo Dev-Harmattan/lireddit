@@ -1,7 +1,6 @@
 import 'reflect-metadata';
-import { MikroORM } from '@mikro-orm/core';
 import * as dotenv from 'dotenv';
-import mikroOrmConfig from './mikro-orm.config';
+import AppDataSource from './dataSource';
 import express from 'express';
 import { buildSchema } from 'type-graphql';
 import { ApolloServer } from 'apollo-server-express';
@@ -16,8 +15,8 @@ import Redis from 'ioredis';
 dotenv.config();
 
 const main = async () => {
-  const orm = await MikroORM.init(mikroOrmConfig);
-  await orm.getMigrator().up();
+
+  await AppDataSource.initialize();
 
   const app = express();
 
@@ -56,7 +55,6 @@ const main = async () => {
       validate: false,
     }),
     context: ({ req, res }) => ({
-      em: orm.em,
       req,
       res,
       redis,

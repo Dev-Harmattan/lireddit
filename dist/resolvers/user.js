@@ -48,6 +48,7 @@ const sendEmail_1 = require("../utils/sendEmail");
 const template_1 = require("../utils/template");
 const uuid_1 = require("uuid");
 const dotenv = __importStar(require("dotenv"));
+const dataSource_1 = __importDefault(require("../dataSource"));
 dotenv.config({ path: __dirname + '/.env' });
 let FieldError = class FieldError {
 };
@@ -76,14 +77,13 @@ UserResponse = __decorate([
     (0, type_graphql_1.ObjectType)()
 ], UserResponse);
 let UserResolver = class UserResolver {
-    async me({ em, req }) {
+    me({ req }) {
         if (!req.session.userId) {
             return null;
         }
-        const user = await em.findOne(user_1.User, { id: req.session.userId });
-        return user;
+        return user_1.User.findOne({ where: { id: req.session.userId } });
     }
-    async changePassword(newPassword, token, { redis, em, req }) {
+    async changePassword(newPassword, token, { redis, req }) {
         if (newPassword.length <= 3) {
             return {
                 errors: [
@@ -106,7 +106,8 @@ let UserResolver = class UserResolver {
                 ],
             };
         }
-        const user = await em.findOne(user_1.User, { id: parseInt(userId) });
+        const userIdNumber = parseInt(userId);
+        const user = await user_1.User.findOne({ where: { id: userIdNumber } });
         if (!user) {
             return {
                 errors: [
@@ -117,14 +118,13 @@ let UserResolver = class UserResolver {
                 ],
             };
         }
-        user.password = await argon2_1.default.hash(newPassword);
-        em.persistAndFlush(user);
+        await user_1.User.update({ id: userIdNumber }, { password: await argon2_1.default.hash(newPassword) });
         await redis.del(key);
         req.session.userId = user.id;
         return { user };
     }
-    async forgotPassword(email, { em, redis }) {
-        const user = await em.findOne(user_1.User, { email });
+    async forgotPassword(email, { redis }) {
+        const user = await user_1.User.findOne({ where: { email: email } });
         if (!user)
             return true;
         const token = (0, uuid_1.v4)();
@@ -138,22 +138,29 @@ let UserResolver = class UserResolver {
         await (0, sendEmail_1.sendEmail)(email, template, templateOption.subject);
         return true;
     }
-    async register(options, { em, req }) {
+    async register(options, { req }) {
         var _a;
         const errors = (0, validateUserRegister_1.validateUserRegister)(options);
         if (errors) {
             return { errors };
         }
         const hashPassword = await argon2_1.default.hash(options.password);
-        const user = em.create(user_1.User, {
-            username: options.username,
-            email: options.email,
-            password: hashPassword,
-        });
+        let user;
         try {
-            await em.persistAndFlush(user);
+            const result = await dataSource_1.default.createQueryBuilder()
+                .insert()
+                .into(user_1.User)
+                .values({
+                username: options.username,
+                email: options.email,
+                password: hashPassword,
+            })
+                .returning('*')
+                .execute();
+            user = result.raw[0];
         }
         catch (error) {
+            console.log(error);
             if (error.code === '23505' || ((_a = error === null || error === void 0 ? void 0 : error.detail) === null || _a === void 0 ? void 0 : _a.includes('already exists'))) {
                 return {
                     errors: [
@@ -168,10 +175,12 @@ let UserResolver = class UserResolver {
         req.session.userId = user.id;
         return { user };
     }
-    async login(usernameOrEmail, password, { em, req }) {
-        const user = await em.findOne(user_1.User, usernameOrEmail.includes('@')
-            ? { email: usernameOrEmail }
-            : { username: usernameOrEmail });
+    async login(usernameOrEmail, password, { req }) {
+        const user = await user_1.User.findOne({
+            where: usernameOrEmail.includes('@')
+                ? { email: usernameOrEmail }
+                : { username: usernameOrEmail },
+        });
         if (!user) {
             return {
                 errors: [
@@ -216,7 +225,7 @@ __decorate([
     __param(0, (0, type_graphql_1.Ctx)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", void 0)
 ], UserResolver.prototype, "me", null);
 __decorate([
     (0, type_graphql_1.Mutation)(() => UserResponse),

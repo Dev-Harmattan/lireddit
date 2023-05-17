@@ -27,9 +27,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
-const core_1 = require("@mikro-orm/core");
 const dotenv = __importStar(require("dotenv"));
-const mikro_orm_config_1 = __importDefault(require("./mikro-orm.config"));
+const dataSource_1 = __importDefault(require("./dataSource"));
 const express_1 = __importDefault(require("express"));
 const type_graphql_1 = require("type-graphql");
 const apollo_server_express_1 = require("apollo-server-express");
@@ -42,8 +41,7 @@ const express_session_1 = __importDefault(require("express-session"));
 const ioredis_1 = __importDefault(require("ioredis"));
 dotenv.config();
 const main = async () => {
-    const orm = await core_1.MikroORM.init(mikro_orm_config_1.default);
-    await orm.getMigrator().up();
+    await dataSource_1.default.initialize();
     const app = (0, express_1.default)();
     const redis = new ioredis_1.default();
     const RedisStore = (0, connect_redis_1.default)(express_session_1.default);
@@ -73,7 +71,6 @@ const main = async () => {
             validate: false,
         }),
         context: ({ req, res }) => ({
-            em: orm.em,
             req,
             res,
             redis,
