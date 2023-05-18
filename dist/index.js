@@ -42,6 +42,7 @@ const ioredis_1 = __importDefault(require("ioredis"));
 dotenv.config();
 const main = async () => {
     await dataSource_1.default.initialize();
+    await dataSource_1.default.runMigrations();
     const app = (0, express_1.default)();
     const redis = new ioredis_1.default();
     const RedisStore = (0, connect_redis_1.default)(express_session_1.default);

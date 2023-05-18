@@ -19,8 +19,10 @@ dotenv.config();
 const main = async () => {
   await AppDataSource.initialize();
 
-  // await Post.delete({})
+  // await Post.delete({});
   // await User.delete({})
+
+  await AppDataSource.runMigrations();
 
   const app = express();
 
