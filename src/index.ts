@@ -12,11 +12,15 @@ import cors from 'cors';
 import connectRedis from 'connect-redis';
 import session from 'express-session';
 import Redis from 'ioredis';
+// import { User } from './entities/user';
+// import { Post } from './entities/post';
 dotenv.config();
 
 const main = async () => {
-
   await AppDataSource.initialize();
+
+  // await Post.delete({})
+  // await User.delete({})
 
   const app = express();
 
