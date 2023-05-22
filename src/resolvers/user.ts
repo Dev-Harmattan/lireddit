@@ -157,7 +157,6 @@ export class UserResolver {
         .execute();
       user = result.raw[0];
     } catch (error) {
-      console.log(error);
       if (error.code === '23505' || error?.detail?.includes('already exists')) {
         return {
           errors: [

@@ -160,7 +160,6 @@ let UserResolver = class UserResolver {
             user = result.raw[0];
         }
         catch (error) {
-            console.log(error);
             if (error.code === '23505' || ((_a = error === null || error === void 0 ? void 0 : error.detail) === null || _a === void 0 ? void 0 : _a.includes('already exists'))) {
                 return {
                     errors: [

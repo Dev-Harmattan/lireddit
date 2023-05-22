@@ -33,23 +33,40 @@ __decorate([
 PostInput = __decorate([
     (0, type_graphql_1.InputType)()
 ], PostInput);
+let PaginationPosts = class PaginationPosts {
+};
+__decorate([
+    (0, type_graphql_1.Field)(() => [post_1.Post]),
+    __metadata("design:type", Array)
+], PaginationPosts.prototype, "posts", void 0);
+__decorate([
+    (0, type_graphql_1.Field)(),
+    __metadata("design:type", Boolean)
+], PaginationPosts.prototype, "hasMore", void 0);
+PaginationPosts = __decorate([
+    (0, type_graphql_1.ObjectType)()
+], PaginationPosts);
 let PostResolver = class PostResolver {
-    textSnippet(root) {
-        return root.text.slice(0, 100);
+    textSnippet(post) {
+        return post.text.slice(0, 100);
     }
-    posts(limit, cursor) {
+    async posts(limit, cursor) {
         const realLimit = Math.min(50, limit);
-        console.log('realLimit', realLimit);
+        const realLimitPlusOne = realLimit + 1;
         const qb = dataSource_1.default.getRepository(post_1.Post)
             .createQueryBuilder('p')
             .orderBy('"createdAt"', 'DESC')
-            .take(realLimit);
+            .take(realLimitPlusOne);
         if (cursor) {
             qb.where('"createdAt" < :cursor', {
                 cursor: new Date(parseInt(cursor)),
             });
         }
-        return qb.getMany();
+        const posts = await qb.getMany();
+        return {
+            posts: posts.slice(0, realLimit),
+            hasMore: posts.length === realLimitPlusOne,
+        };
     }
     post(id) {
         return post_1.Post.findOne({ where: { id: id } });
@@ -80,7 +97,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], PostResolver.prototype, "textSnippet", null);
 __decorate([
-    (0, type_graphql_1.Query)(() => [post_1.Post]),
+    (0, type_graphql_1.Query)(() => PaginationPosts),
     __param(0, (0, type_graphql_1.Arg)('limit', () => type_graphql_1.Int)),
     __param(1, (0, type_graphql_1.Arg)('cursor', () => String, { nullable: true })),
     __metadata("design:type", Function),
